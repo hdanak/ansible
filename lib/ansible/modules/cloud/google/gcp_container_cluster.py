@@ -170,6 +170,14 @@ options:
           Because the master endpoint is open to the Internet, you should create a
           strong password.
         required: false
+      suboptions:
+        client_certificate_config:
+          required: false
+          suboptions:
+            issue_client_certificate:
+              description:
+              - Whether to issue a client certificate.
+              required: false
   logging_service:
     description:
     - 'The logging service the cluster should use to write logs. Currently available
@@ -650,7 +658,14 @@ def main():
                     preemptible=dict(type='bool'),
                 ),
             ),
-            master_auth=dict(type='dict', options=dict(username=dict(type='str'), password=dict(type='str'))),
+            master_auth=dict(
+                type='dict',
+                options=dict(
+                    username=dict(type='str'),
+                    password=dict(type='str'),
+                    client_certificate_config=dict(type='dict', options=dict(issue_client_certificate=dict(type='bool'))),
+                ),
+            ),
             logging_service=dict(type='str', choices=['logging.googleapis.com', 'none']),
             monitoring_service=dict(type='str', choices=['monitoring.googleapis.com', 'none']),
             network=dict(type='str'),
@@ -909,6 +924,23 @@ class ClusterNodeconfig(object):
             }
         )
 
+class Clusterclientcertificateconfig(object):
+    def __init__(self, request, module):
+        self.module = module
+        if request:
+            self.request = request
+        else:
+            self.request = {}
+
+    def to_request(self):
+        return remove_nones_from_dict({
+            u'issueClientCertificate': self.request.get('issue_client_certificate'),
+        })
+
+    def from_response(self):
+        return remove_nones_from_dict({
+            u'issueClientCertificate': self.request.get(u'issueClientCertificate'),
+        })
 
 class ClusterMasterauth(object):
     def __init__(self, request, module):
@@ -919,10 +951,18 @@ class ClusterMasterauth(object):
             self.request = {}
 
     def to_request(self):
-        return remove_nones_from_dict({u'username': self.request.get('username'), u'password': self.request.get('password')})
+        return remove_nones_from_dict({
+            u'username': self.request.get('username'),
+            u'password': self.request.get('password'),
+            u'clientCertificateConfig': Clusterclientcertificateconfig(self.request.get('client_certificate_config', {}), self.module).to_request(),
+        })
 
     def from_response(self):
-        return remove_nones_from_dict({u'username': self.request.get(u'username'), u'password': self.request.get(u'password')})
+        return remove_nones_from_dict({
+            u'username': self.request.get(u'username'),
+            u'password': self.request.get(u'password'),
+            u'clientCertificateConfig': ClusterHttploadbalancing(self.request.get(u'clientCertificateConfig', {}), self.module).from_response(),
+        })
 
 
 class ClusterPrivateclusterconfig(object):
