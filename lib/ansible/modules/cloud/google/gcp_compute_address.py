@@ -111,7 +111,7 @@ options:
     description:
     - URL of the region where the regional address resides.
     - This field is not applicable to global addresses.
-    required: true
+    required: false
 extends_documentation_fragment: gcp
 notes:
 - 'API Reference: U(https://cloud.google.com/compute/docs/reference/beta/addresses)'
@@ -221,7 +221,7 @@ def main():
             name=dict(required=True, type='str'),
             network_tier=dict(type='str', choices=['PREMIUM', 'STANDARD']),
             subnetwork=dict(type='dict'),
-            region=dict(required=True, type='str'),
+            region=dict(type='str'),
         )
     )
 
@@ -294,11 +294,17 @@ def fetch_resource(module, link, kind, allow_not_found=True):
 
 
 def self_link(module):
-    return "https://www.googleapis.com/compute/v1/projects/{project}/regions/{region}/addresses/{name}".format(**module.params)
+    if module.params.get('region', None):
+        return "https://www.googleapis.com/compute/v1/projects/{project}/regions/{region}/addresses/{name}".format(**module.params)
+    else:
+        return "https://www.googleapis.com/compute/v1/projects/{project}/global/addresses/{name}".format(**module.params)
 
 
 def collection(module):
-    return "https://www.googleapis.com/compute/v1/projects/{project}/regions/{region}/addresses".format(**module.params)
+    if module.params.get('region', None):
+        return "https://www.googleapis.com/compute/v1/projects/{project}/regions/{region}/addresses".format(**module.params)
+    else:
+        return "https://www.googleapis.com/compute/v1/projects/{project}/global/addresses".format(**module.params)
 
 
 def return_if_object(module, response, kind, allow_not_found=False):
@@ -359,7 +365,10 @@ def response_to_hash(module, response):
 def async_op_url(module, extra_data=None):
     if extra_data is None:
         extra_data = {}
-    url = "https://www.googleapis.com/compute/v1/projects/{project}/regions/{region}/operations/{op_id}"
+    if module.params.get('region', None):
+        url = "https://www.googleapis.com/compute/v1/projects/{project}/regions/{region}/operations/{op_id}"
+    else:
+        url = "https://www.googleapis.com/compute/v1/projects/{project}/global/operations/{op_id}"
     combined = extra_data.copy()
     combined.update(module.params)
     return url.format(**combined)
